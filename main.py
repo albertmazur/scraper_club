@@ -4,32 +4,14 @@ from bs4 import BeautifulSoup
 def getSoup(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     return BeautifulSoup(response.text, 'html.parser')
+
 domain = "https://www.transfermarkt.pl"
 url = "https://www.transfermarkt.pl/wettbewerbe/europa"
 
-
-soup = getSoup(url)
-table = soup.find('table', {'class': 'items'})
-trs = table.find_all('tr', class_=['odd', 'even'])
-
 plik = open("dane_klubu.txt", "w", encoding="utf-8")
 
-#def getCouch(soup):
-
-    # div = soup.find("div", {"class", "spielername"})
-    # divName = div.find("div", {"class", "staff-name"})
-    # divAge = div.find("div", {"class", "staff-age"})
-
-    # responseCouch = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-    # soupCouch = BeautifulSoup(responseCouch.text, 'html.parser')
-
-    # div = soup.find("div", {"class", "staff-slider-headline"})
-
-    # print(divName.text+" | "+divAge.text)
-
-
 def getTrophist(url):
-    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, verify=False)
+    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     soup = BeautifulSoup(response.text, 'html.parser')
 
     divs = soup.find_all("div", {"class": "erfolg_bild_box"})
@@ -41,15 +23,59 @@ def getTrophist(url):
         divSeson = mainDiv.find("div", {"class", "erfolg_infotext_box"})
         sesonText = ''.join(divSeson.text.split())
         sesonText = sesonText.replace(",", ", ")
-        #print(img.get("title")+" | "+sesonText)
+
+        print(img.get("title")+" | "+sesonText)
         plik.write(img.get("title")+" | "+sesonText+"\n")
+
+def getNationality():
+    for page in range(1, 10):
+        soup = getSoup(domain + "/" + "wettbewerbe/fifa?ajax=yw1&page="+str(page))
+        table = soup.find('table', {'class': 'items'})
+        trs = table.find_all('tr', class_=['odd', 'even'])
+        for i, tr in enumerate(trs):
+            a = tr.find("a")
+            aUrl = a.get("href")
+            czesci = aUrl.split('/')
+            url = domain + '/' + czesci[1] + '/' + "erfolge/verein/" + czesci[4]
+
+            #print(str((i+1)+((page-1)*25))+" | "+a.get("title")+"\n")
+            plik.write(str((i+1)+((page-1)*25))+" | "+a.get("title")+"\n")
+
+            getTrophist(url)
+
+
+getNationality()
+
+def getCouch(url):
+    czesci = url.split('/')
+    url = domain+'/'+czesci[3]+'/'+"mitarbeiter/verein/"+czesci[6]
+
+    soup = getSoup(url)
+
+    table = soup.find("table")
+    tbody = table.find("tbody")
+    tr = tbody.find("tr")
+    tdName = tr.find("td")
+    tds = tr.find_all("td", {"class": "zentriert"})
+
+    name = tdName.find("a").text
+
+    wiek = tds[0].text
+
+    img = tds[1].find("img")
+    narodowosc = img.get("title")
+
+    od = tds[2].text
+    do = tds[3].text
+
+    #print(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip())
+    plik.write(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip()+"\n")
 
 
 def getPlayers(url):
-    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = getSoup(url)
 
-    #getCouch(soup)
+    getCouch(url)
 
     table = soup.find('table', {'class': 'items'})
     trs = table.find_all('tr', class_=['odd', 'even'])
@@ -86,14 +112,10 @@ def getPlayers(url):
     if tropyLink is not None:
         url = tropyLink.get('href')
         getTrophist(domain + url)
-    #print(domain+url)
 
-    div = soup.find_all("div")
-    print(div)
 
 def getClubs(url):
-    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = getSoup(url)
 
     table = soup.find('table', {'class': 'items'})
     trs = table.find_all('tr', class_=['odd', 'even'])
@@ -107,6 +129,10 @@ def getClubs(url):
 
         getPlayers(domain+a.get("href"))
 
+
+soup = getSoup(url)
+tableLig = soup.find('table', {'class': 'items'})
+trs = tableLig.find_all('tr', class_=['odd', 'even'])
 
 for i, tr in enumerate(trs):
     table = tr.find("table", {'class': 'inline-table'})
