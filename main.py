@@ -24,7 +24,7 @@ def getTrophist(url):
         sesonText = ''.join(divSeson.text.split())
         sesonText = sesonText.replace(",", ", ")
 
-        print(img.get("title")+" | "+sesonText)
+        #print(img.get("title")+" | "+sesonText)
         plik.write(img.get("title")+" | "+sesonText+"\n")
 
 def getNationality():
@@ -75,6 +75,15 @@ def getCouch(url):
 def getPlayers(url):
     soup = getSoup(url)
 
+    # Pobranie informacji o stadionie
+    divStadium = soup.find("div", {"class": "data-header__info-box"})
+    print(divStadium)
+    ulStadium = divStadium.find_all("ul")
+    liStadium = ulStadium[-1].find_all("li")
+    print(liStadium[1])
+    #plik.write("" + "\n")
+
+    # Pobranie trenera z kontraktem
     getCouch(url)
 
     table = soup.find('table', {'class': 'items'})
