@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2023-05-15T22:37:40.159Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.2.8 Chrome/112.0.5615.165 Electron/24.2.0 Safari/537.36" etag="JKP4jkMsnzs5dfMrWaf7" version="21.2.8" type="device">
+<mxfile host="Electron" modified="2023-05-16T15:07:42.801Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.2.8 Chrome/112.0.5615.165 Electron/24.2.0 Safari/537.36" etag="osip5cT3mSsmrF7VDQI5" version="21.2.8" type="device">
   <diagram name="Strona-1" id="uyKGH_IePtkEnGAkP2wR">
     <mxGraphModel dx="2245" dy="828" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -38,7 +38,7 @@
           <mxGeometry y="86" width="160" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ouZIDkhZxeDlDyD71dQN-13" value="Stadion" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="-170" width="160" height="86" as="geometry" />
+          <mxGeometry x="-150" y="5" width="160" height="86" as="geometry" />
         </mxCell>
         <mxCell id="ouZIDkhZxeDlDyD71dQN-14" value="Nazwa" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" parent="ouZIDkhZxeDlDyD71dQN-13" vertex="1">
           <mxGeometry y="26" width="160" height="30" as="geometry" />
@@ -61,7 +61,7 @@
             <mxPoint x="290" y="150" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="xlfetUoiFZZpJV2zMhiR-4" value="Kontrakt&lt;br&gt;data&lt;br&gt;kwota" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="xlfetUoiFZZpJV2zMhiR-1" vertex="1" connectable="0">
+        <mxCell id="xlfetUoiFZZpJV2zMhiR-4" value="Kontrakt&lt;br&gt;data" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="xlfetUoiFZZpJV2zMhiR-1" vertex="1" connectable="0">
           <mxGeometry x="-0.2048" y="4" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -72,12 +72,12 @@
             <mxPoint x="290" y="150" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="xlfetUoiFZZpJV2zMhiR-5" value="Kontrakt&lt;br&gt;data&lt;br&gt;kwota" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="xlfetUoiFZZpJV2zMhiR-2" vertex="1" connectable="0">
+        <mxCell id="xlfetUoiFZZpJV2zMhiR-5" value="Kontrakt&lt;br&gt;data" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="xlfetUoiFZZpJV2zMhiR-2" vertex="1" connectable="0">
           <mxGeometry x="0.202" y="-2" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="xlfetUoiFZZpJV2zMhiR-3" value="brali_uczial; wygrali&lt;br&gt;sezon" style="endArrow=none;html=1;rounded=0;" parent="1" source="ouZIDkhZxeDlDyD71dQN-26" target="ouZIDkhZxeDlDyD71dQN-1" edge="1">
+        <mxCell id="xlfetUoiFZZpJV2zMhiR-3" value="wygrali&lt;br&gt;sezon" style="endArrow=none;html=1;rounded=0;" parent="1" source="ouZIDkhZxeDlDyD71dQN-26" target="ouZIDkhZxeDlDyD71dQN-1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="200" y="180" as="sourcePoint" />
             <mxPoint x="290" y="150" as="targetPoint" />

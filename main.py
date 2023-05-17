@@ -37,11 +37,13 @@ def getNationality():
             aUrl = a.get("href")
             czesci = aUrl.split('/')
             url = domain + '/' + czesci[1] + '/' + "erfolge/verein/" + czesci[4]
-
-            #print(str((i+1)+((page-1)*25))+" | "+a.get("title")+"\n")
-            plik.write(str((i+1)+((page-1)*25))+" | "+a.get("title")+"\n")
+            currentNation = (i+1)+((page-1)*25)
+            #print(str(currentNation)+" | "+a.get("title")+"\n")
+            plik.write(str(currentNation)+" | "+a.get("title")+"\n")
 
             getTrophist(url)
+
+            print("Pobrano narodowości:"+str(round((currentNation/210)*100, 2))+"%")
 
 
 getNationality()
@@ -77,14 +79,23 @@ def getPlayers(url):
 
     # Pobranie informacji o stadionie
     divStadium = soup.find("div", {"class": "data-header__info-box"})
-    print(divStadium)
     ulStadium = divStadium.find_all("ul")
     liStadium = ulStadium[-1].find_all("li")
-    print(liStadium[1])
-    #plik.write("" + "\n")
+
+    nameStadium = liStadium[1].find("a").text
+    setStadium = liStadium[1].find("span", {"class": "tabellenplatz"}).text
+
+    #print(nameStadium+" | "+setStadium)
+    plik.write(nameStadium+" | "+setStadium + "\n")
 
     # Pobranie trenera z kontraktem
     getCouch(url)
+
+    # Pobranie szczegółowej listy zawodników
+    divTabs = soup.find("div", {"class", "tm-tabs"})
+    links = divTabs.find_all("a")
+    url = domain+links[1].get("href")
+    soup = getSoup(url)
 
     table = soup.find('table', {'class': 'items'})
     trs = table.find_all('tr', class_=['odd', 'even'])
@@ -94,27 +105,23 @@ def getPlayers(url):
         table = tr.find("table", {'class': 'inline-table'})
         trName = table.find_all("tr")
         tdName = trName[0].find("td", {'class': 'hauptlink'})
-        name = tdName.find("a").getText()
-        position = trName[1].find("td").getText()
+        name = tdName.find("a").text.strip()
+        position = trName[1].find("td").text.strip()
 
         tds = tr.find_all("td", {'class': 'zentriert'})
         # Data urodzenia
         dateBirth = tds[1].text[:-5]
         # Narodowość
         nation = tds[2].find("img").get("title")
-        #nation = ""
+
+        odContract = tds[5].text
+        doContract = tds[7].text
 
         # Wartość rynkowa
-        tdWalue = tr.find("td", {'class': 'rechts hauptlink'})
-        a = tdWalue.find("a")
+        walue = tr.find("td", {'class': 'rechts'}).text
 
-        if a is not None:
-            walue = a.text
-        else:
-            walue = "0 €"
-
-        #print(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+walue)
-        plik.write(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+walue+"\n")
+        #print(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue)
+        plik.write(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue+"\n")
 
     tropyLink = soup.find("div", {'class', 'data-header__badge-container'})
     tropyLink = tropyLink.find("a")
@@ -158,6 +165,6 @@ for i, tr in enumerate(trs):
     plik.write(str(i+1)+" | "+a.get("title")+" | "+img.get("title")+" | "+countClub+" | "+domain + a.get('href')+"\n")
 
     getClubs(domain + a.get('href'))
-
+    print("Pobrano ligi w raz z klubami:" + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
 
 plik.close()
