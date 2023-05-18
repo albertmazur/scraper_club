@@ -9,8 +9,9 @@ domain = "https://www.transfermarkt.pl"
 url = "https://www.transfermarkt.pl/wettbewerbe/europa"
 
 plik = open("dane_klubu.txt", "w", encoding="utf-8")
+plikCypher = open("database.cypher", "w", encoding="utf-8")
 
-def getTrophist(url):
+def getTrophist(url, who):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -21,11 +22,15 @@ def getTrophist(url):
         img = divName.find("img")
 
         divSeson = mainDiv.find("div", {"class", "erfolg_infotext_box"})
-        sesonText = ''.join(divSeson.text.split())
-        sesonText = sesonText.replace(",", ", ")
+        sesonTexts = ''.join(divSeson.text.split())
+        sesonTexts = sesonTexts.replace(",", ", ")
 
-        #print(img.get("title")+" | "+sesonText)
-        plik.write(img.get("title")+" | "+sesonText+"\n")
+        #print(img.get("title")+" | "+sesonTexts)
+        nameTrohy = img.get("title")
+        for sezon in sesonTexts.split(", "):
+            print('MATCH (n {nazwa:"'+who+'"}) CREATE (t:Trofeum {nazwa:"'+nameTrohy+'"}), (n)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN n, r, t;')
+
+        plik.write(nameTrohy+" | "+sesonTexts+"\n")
 
 def getNationality():
     for page in range(1, 10):
@@ -38,12 +43,14 @@ def getNationality():
             czesci = aUrl.split('/')
             url = domain + '/' + czesci[1] + '/' + "erfolge/verein/" + czesci[4]
             currentNation = (i+1)+((page-1)*25)
-            #print(str(currentNation)+" | "+a.get("title")+"\n")
-            plik.write(str(currentNation)+" | "+a.get("title")+"\n")
+            nameNation = a.get("title")
 
-            getTrophist(url)
+            #print(str(currentNation)+" | "+nameNation+"\n")
+            plik.write(str(currentNation)+" | "+nameNation+"\n")
+            print('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;')
 
-            print("Pobrano narodowości:"+str(round((currentNation/210)*100, 2))+"%")
+            getTrophist(url, nameNation)
+            # print("Pobrano narodowości:"+str(round((currentNation/210)*100, 2))+"%")
 
 
 getNationality()
@@ -167,4 +174,5 @@ for i, tr in enumerate(trs):
     getClubs(domain + a.get('href'))
     print("Pobrano ligi w raz z klubami:" + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
 
+plikCypher.close()
 plik.close()
