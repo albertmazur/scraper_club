@@ -28,8 +28,8 @@ def getTrophist(url, who):
         #print(img.get("title")+" | "+sesonTexts)
         nameTrohy = img.get("title")
         for sezon in sesonTexts.split(", "):
-            print('MATCH (n {nazwa:"'+who+'"}) CREATE (t:Trofeum {nazwa:"'+nameTrohy+'"}), (n)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN n, r, t;')
-
+            print('MERGE (k:Kraj {nazwa:"'+who+'"}) MERGE (t:Trofeum {nazwa:"'+nameTrohy+'"}) MERGE (k)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN k, r, t;')
+            #MERGE (a:Person {name: "Jan"}) MERGE (b:Book {title: "Neo4j Guide"}) MERGE (a)-[:READ]->(b)
         plik.write(nameTrohy+" | "+sesonTexts+"\n")
 
 def getNationality():
@@ -47,7 +47,7 @@ def getNationality():
 
             #print(str(currentNation)+" | "+nameNation+"\n")
             plik.write(str(currentNation)+" | "+nameNation+"\n")
-            print('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;')
+            #print('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;')
 
             getTrophist(url, nameNation)
             # print("Pobrano narodowości:"+str(round((currentNation/210)*100, 2))+"%")
@@ -55,7 +55,7 @@ def getNationality():
 
 getNationality()
 
-def getCouch(url):
+def getCouch(url, nameClub):
     czesci = url.split('/')
     url = domain+'/'+czesci[3]+'/'+"mitarbeiter/verein/"+czesci[6]
 
@@ -81,7 +81,7 @@ def getCouch(url):
     plik.write(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip()+"\n")
 
 
-def getPlayers(url):
+def getPlayers(url, nameClub):
     soup = getSoup(url)
 
     # Pobranie informacji o stadionie
@@ -96,7 +96,7 @@ def getPlayers(url):
     plik.write(nameStadium+" | "+setStadium + "\n")
 
     # Pobranie trenera z kontraktem
-    getCouch(url)
+    getCouch(url, nameClub)
 
     # Pobranie szczegółowej listy zawodników
     divTabs = soup.find("div", {"class", "tm-tabs"})
@@ -129,12 +129,13 @@ def getPlayers(url):
 
         #print(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue)
         plik.write(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue+"\n")
+        print("")
 
     tropyLink = soup.find("div", {'class', 'data-header__badge-container'})
     tropyLink = tropyLink.find("a")
     if tropyLink is not None:
         url = tropyLink.get('href')
-        getTrophist(domain + url)
+        getTrophist(domain + url, nameClub)
 
 
 def getClubs(url):
@@ -147,10 +148,11 @@ def getClubs(url):
         td = tr.find("td", {'class': 'hauptlink'})
         a = td.find("a")
 
-        #print(str(i+1)+" | "+a.get("title")+" | "+domain+a.get("href"))
-        plik.write(str(i+1)+" | "+a.get("title")+" | "+domain+a.get("href")+"\n")
+        nameClub = a.get("title")
+        #print(str(i+1)+" | "+nameClub+" | "+domain+a.get("href"))
+        plik.write(str(i+1)+" | "+nameClub+" | "+domain+a.get("href")+"\n")
 
-        getPlayers(domain+a.get("href"))
+        getPlayers(domain+a.get("href"), nameClub)
 
 
 soup = getSoup(url)
