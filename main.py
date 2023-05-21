@@ -8,7 +8,6 @@ def getSoup(url):
 domain = "https://www.transfermarkt.pl"
 url = "https://www.transfermarkt.pl/wettbewerbe/europa"
 
-plik = open("dane_klubu.txt", "w", encoding="utf-8")
 plikCypher = open("database.cypher", "w", encoding="utf-8")
 
 def getTrophist(url, who, clubOrNation):
@@ -27,16 +26,24 @@ def getTrophist(url, who, clubOrNation):
 
         #print(img.get("title")+" | "+sesonTexts)
         nameTrohy = img.get("title")
-        for sezon in sesonTexts.split(", "):
-            print('MERGE (k:'+clubOrNation+' {nazwa:"'+who+'"}) MERGE (t:Trofeum {nazwa:"'+nameTrohy+'"}) MERGE (k)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN k, r, t;')
-            #MERGE (a:Person {name: "Jan"}) MERGE (b:Book {title: "Neo4j Guide"}) MERGE (a)-[:READ]->(b)
-        plik.write(nameTrohy+" | "+sesonTexts+"\n")
+        beginQuery = 'MATCH (k:' + clubOrNation + ' {nazwa:"' + who + '"}) MERGE (t:Trofeum {nazwa:"' + nameTrohy + '"}) CREATE'
+        relationQuery = ""
+        endQuery = ""
+        sezons = sesonTexts.split(", ")
+        for i, sezon in enumerate(sezons):
+            if len(sezons) != i+1: relationQuery = relationQuery+'(k)-[r'+str(i)+':wygrali {sezon:"'+sezon+'"}]->(t), '
+            else : relationQuery = relationQuery+'(k)-[r'+str(i)+':wygrali {sezon:"'+sezon+'"}]->(t) '
+            endQuery = endQuery+"r"+str(i)+", "
+
+            #print('MATCH (k:'+clubOrNation+' {nazwa:"'+who+'"}) MERGE (t:Trofeum {nazwa:"'+nameTrohy+'"}) MERGE (k)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN k, r, t;')
+        plikCypher.write(beginQuery+relationQuery+"RETURN "+endQuery+"k, t;\n")
 
 def getNationality():
     for page in range(1, 10):
         soup = getSoup(domain + "/" + "wettbewerbe/fifa?ajax=yw1&page="+str(page))
         table = soup.find('table', {'class': 'items'})
         trs = table.find_all('tr', class_=['odd', 'even'])
+
         for i, tr in enumerate(trs):
             a = tr.find("a")
             aUrl = a.get("href")
@@ -46,12 +53,11 @@ def getNationality():
             nameNation = a.get("title")
 
             #print(str(currentNation)+" | "+nameNation+"\n")
-            plik.write(str(currentNation)+" | "+nameNation+"\n")
-            print('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;')
+
+            plikCypher.write('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;\n')
 
             getTrophist(url, nameNation, "Kraj")
-            # print("Pobrano narodowości:"+str(round((currentNation/210)*100, 2))+"%")
-
+            print("Pobrano narodowości: "+str(round((currentNation/210)*100, 2))+"%")
 
 getNationality()
 
@@ -78,9 +84,7 @@ def getCouch(url, nameClub):
     do = tds[3].text
 
     #print(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip())
-    plik.write(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip()+"\n")
-    #Mikel Arteta | 41 | Hiszpania | 22 gru 2019 | 30.06.2025
-    print('MERGE (t:Trener {imie_i_nazwisko:"'+name+'", wiek:"'+wiek+'"}) MERGE (t:Kraj {nazwa:"'+narodowosc+'"}) MERGE (c:Klub {nazwa:"'+nameClub+'"}) MERGE (k)-[r1:pochodzi]->(t) MERGE (c)-[r2:kontrakt {od_kiedy:"'+od+'", do_kiedy:"'+do.strip()+'"}]->(t) RETURN t, k, c, r1, r2;')
+    plikCypher.write('CREATE (t:Trener {imie_i_nazwisko:"'+name+'", wiek:"'+wiek+'"}) WITH t MATCH (k:Kraj {nazwa:"'+narodowosc+'"}), (c:Klub {nazwa:"'+nameClub+'"}) CREATE (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:"'+od+'", do_kiedy:"'+do.strip()+'"}]->(c) RETURN t, k, c, r1, r2;\n')
 
 def getPlayers(url, nameClub):
     soup = getSoup(url)
@@ -93,9 +97,10 @@ def getPlayers(url, nameClub):
     nameStadium = liStadium[1].find("a").text
     setStadium = liStadium[1].find("span", {"class": "tabellenplatz"}).text
 
+    setStadium = setStadium.replace(" miejsc", "")
     #print(nameStadium+" | "+setStadium)
-    plik.write(nameStadium+" | "+setStadium + "\n")
 
+    plikCypher.write('CREATE (s:Stadion {nazwa:"'+nameStadium+'", miejsca:"'+setStadium+'"}) WITH s MATCH (c:Klub {nazwa:"'+nameClub+'"}) CREATE (s)-[r:nalezy]->(c) RETURN s, r, c;\n')
     # Pobranie trenera z kontraktem
     getCouch(url, nameClub)
 
@@ -129,8 +134,7 @@ def getPlayers(url, nameClub):
         walue = tr.find("td", {'class': 'rechts'}).text
 
         #print(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue)
-        plik.write(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue+"\n")
-        print('MERGE (z:Zawodnik {imie_i_nazwisko:"'+name+'", pozycja:"'+position+'", data_urodzenia:"'+dateBirth+'"}) MERGE (k:Kraj {nazwa:"'+nation+'"}) MERGE (c:Klub {nazwa:"'+nameClub+'"}) MERGE (z)-[r1:nalezy]->(k) MERGE (z)-[r2:kontrakt {od_kiedy:"'+odContract+'", do_kiedy:"'+doContract+'",wartosc:"'+walue+'"}]->(c) RETURN z, c, k, r1, r2,;')
+        plikCypher.write('CREATE (z:Zawodnik {imie_i_nazwisko:"'+name+'", pozycja:"'+position+'", data_urodzenia:"'+dateBirth+'"}) MATCH (k:Kraj {nazwa:"'+nation+'"}) MATCH (c:Klub {nazwa:"'+nameClub+'"}) CREATE (z)-[r1:nalezy]->(k), (z)-[r2:kontrakt {od_kiedy:"'+odContract+'", do_kiedy:"'+doContract+'",wartosc:"'+walue+'"}]->(c) RETURN z, c, k, r1, r2;\n')
 
     tropyLink = soup.find("div", {'class', 'data-header__badge-container'})
     tropyLink = tropyLink.find("a")
@@ -151,8 +155,7 @@ def getClubs(url, country, nameLig):
 
         nameClub = a.get("title")
         #print(str(i+1)+" | "+nameClub+" | "+domain+a.get("href"))
-        plik.write(str(i+1)+" | "+nameClub+" | "+domain+a.get("href")+"\n")
-        print('MERGE (k:Klub {nazwa:"'+nameClub+'"}) MERGE (t:Kraj {nazwa:"'+country+'"}) MERGE (k)-[r:nalezy {nazwa:"'+nameLig+'"}]->(t) RETURN k, r, t;')
+        plikCypher.write('CREATE (k:Klub {nazwa:"'+nameClub+'"}) MATCH (t:Kraj {nazwa:"'+country+'"}) CREATE (k)-[r:nalezy {nazwa:"'+nameLig+'"}]->(t) RETURN k, r, t;\n')
         getPlayers(domain+a.get("href"), nameClub)
 
 
@@ -174,10 +177,8 @@ for i, tr in enumerate(trs):
     nameLig = a.get("title")
 
     #print(str(i+1)+" | "+nameLig+" | "+country+" | "+countClub+" | "+domain + a.get('href'))
-    plik.write(str(i+1)+" | "+nameLig+" | "+country+" | "+countClub+" | "+domain + a.get('href')+"\n")
 
     getClubs(domain + a.get('href'), country, nameLig)
-    #print("Pobrano ligi w raz z klubami:" + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
+    print("Pobrano ligi w raz z klubami: " + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
 
 plikCypher.close()
-plik.close()
