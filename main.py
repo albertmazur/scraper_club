@@ -1,5 +1,28 @@
 import requests
 from bs4 import BeautifulSoup
+from neo4j import GraphDatabase
+
+uri = "bolt://localhost:7687"
+password = "P@$$w0rd"
+driver = GraphDatabase.driver(uri, auth=("neo4j", password))
+
+def add_dataCountry(tx, nameNation):
+    tx.run("CREATE (k:Kraj {nazwa:$nameNation}) RETURN k", nameNation=nameNation)
+
+def add_dataPlayer(tx, name, position, dateBirth, nation, nameClub, odContract, doContract, walue):
+    tx.run("CREATE (z:Zawodnik {imie_i_nazwisko:$name, pozycja:$position, data_urodzenia:$dateBirth}) WITH z MATCH (k:Kraj {nazwa:$nation}) WITH z MATCH (c:Klub {nazwa:$nameClub}) CREATE (z)-[r1:nalezy]->(k), (z)-[r2:kontrakt {od_kiedy:$odContract, do_kiedy:$doContract, wartosc:$walue}]->(c) RETURN z, c, k, r1, r2", name=name, position=position, dateBirth=dateBirth, nation=nation, nameClub=nameClub, odContract=odContract, doContract=doContract, walue=walue)
+
+def add_dataCouch(tx, name, wiek, narodowosc, nameClub, od, do):
+    tx.run("CREATE (t:Trener {imie_i_nazwisko:$name, wiek:$wiek}) WITH t MATCH (k:Kraj {nazwa:$narodowosc}), (c:Klub {nazwa:$nameClub}) CREATE (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:$od, do_kiedy:$do}]->(c) RETURN t, k, c, r1, r2", name=name, wiek=wiek, narodowosc=narodowosc, nameClub=nameClub, od=od, do=do)
+
+def add_dataStadium(tx, nameStadium, setStadium, nameClub):
+    tx.run("CREATE (s:Stadion {nazwa:$nameStadium, miejsca:$setStadium}) WITH s MATCH (c:Klub {nazwa:$nameClub}) CREATE (s)-[r:nalezy]->(c) RETURN s, r, c", nameStadium=nameStadium, setStadium=setStadium, nameClub=nameClub)
+
+def add_dataClub(tx, nameClub, country, nameLig):
+    tx.run("CREATE (k:Klub {nazwa:$nameClub}) WITH k MATCH (t:Kraj {nazwa:$country}) CREATE (k)-[r:nalezy {nazwa:$nameLig}]->(t) RETURN k, r, t;", nameClub=nameClub, country=country, nameLig=nameLig)
+
+def add_dataTrophist(tx, clubOrNation, who, nameTrohy, sezon):
+    tx.run("MATCH (k:"+clubOrNation+" {nazwa:$who}) MERGE (t:Trofeum {nazwa:$nameTrohy}) CREATE (k)-[r:wygrali {sezon:$sezon}]->(t) RETURN k, r, t", who=who, nameTrohy=nameTrohy, sezon=sezon)
 
 def getSoup(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -7,8 +30,6 @@ def getSoup(url):
 
 domain = "https://www.transfermarkt.pl"
 url = "https://www.transfermarkt.pl/wettbewerbe/europa"
-
-plikCypher = open("database.cypher", "w", encoding="utf-8")
 
 def getTrophist(url, who, clubOrNation):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -24,19 +45,11 @@ def getTrophist(url, who, clubOrNation):
         sesonTexts = ''.join(divSeson.text.split())
         sesonTexts = sesonTexts.replace(",", ", ")
 
-        #print(img.get("title")+" | "+sesonTexts)
         nameTrohy = img.get("title")
-        beginQuery = 'MATCH (k:' + clubOrNation + ' {nazwa:"' + who + '"}) MERGE (t:Trofeum {nazwa:"' + nameTrohy + '"}) CREATE'
-        relationQuery = ""
-        endQuery = ""
         sezons = sesonTexts.split(", ")
-        for i, sezon in enumerate(sezons):
-            if len(sezons) != i+1: relationQuery = relationQuery+'(k)-[r'+str(i)+':wygrali {sezon:"'+sezon+'"}]->(t), '
-            else : relationQuery = relationQuery+'(k)-[r'+str(i)+':wygrali {sezon:"'+sezon+'"}]->(t) '
-            endQuery = endQuery+"r"+str(i)+", "
 
-            #print('MATCH (k:'+clubOrNation+' {nazwa:"'+who+'"}) MERGE (t:Trofeum {nazwa:"'+nameTrohy+'"}) MERGE (k)-[r:wygrali {sezon:"'+sezon+'"}]->(t) RETURN k, r, t;')
-        plikCypher.write(beginQuery+relationQuery+"RETURN "+endQuery+"k, t;\n")
+        for i, sezon in enumerate(sezons):
+            with driver.session() as session: session.execute_write(add_dataTrophist, clubOrNation, who, nameTrohy, sezon)
 
 def getNationality():
     for page in range(1, 10):
@@ -52,9 +65,7 @@ def getNationality():
             currentNation = (i+1)+((page-1)*25)
             nameNation = a.get("title")
 
-            #print(str(currentNation)+" | "+nameNation+"\n")
-
-            plikCypher.write('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;\n')
+            with driver.session() as session: session.execute_write(add_dataCountry, nameNation)
 
             getTrophist(url, nameNation, "Kraj")
             print("Pobrano narodowości: "+str(round((currentNation/210)*100, 2))+"%")
@@ -83,9 +94,7 @@ def getCouch(url, nameClub):
     od = tds[2].text
     do = tds[3].text
 
-    #print(name+" | "+wiek+" | "+narodowosc+" | "+od+" | "+do.strip())
-    plikCypher.write('CREATE (t:Trener {imie_i_nazwisko:"'+name+'", wiek:"'+wiek+'"}) WITH t MATCH (k:Kraj {nazwa:"'+narodowosc+'"}), (c:Klub {nazwa:"'+nameClub+'"}) CREATE (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:"'+od+'", do_kiedy:"'+do.strip()+'"}]->(c) RETURN t, k, c, r1, r2;\n')
-
+    with driver.session() as session: session.execute_write(add_dataCouch, name, wiek, narodowosc, nameClub, od, do.strip())
 def getPlayers(url, nameClub):
     soup = getSoup(url)
 
@@ -98,9 +107,9 @@ def getPlayers(url, nameClub):
     setStadium = liStadium[1].find("span", {"class": "tabellenplatz"}).text
 
     setStadium = setStadium.replace(" miejsc", "")
-    #print(nameStadium+" | "+setStadium)
 
-    plikCypher.write('CREATE (s:Stadion {nazwa:"'+nameStadium+'", miejsca:"'+setStadium+'"}) WITH s MATCH (c:Klub {nazwa:"'+nameClub+'"}) CREATE (s)-[r:nalezy]->(c) RETURN s, r, c;\n')
+    with driver.session() as session: session.execute_write(add_dataStadium, nameStadium, setStadium, nameClub)
+
     # Pobranie trenera z kontraktem
     getCouch(url, nameClub)
 
@@ -133,8 +142,7 @@ def getPlayers(url, nameClub):
         # Wartość rynkowa
         walue = tr.find("td", {'class': 'rechts'}).text
 
-        #print(str(i+1)+" | "+name+" | "+position+" | "+dateBirth+" | "+nation+" | "+odContract+" | "+doContract+" | "+walue)
-        plikCypher.write('CREATE (z:Zawodnik {imie_i_nazwisko:"'+name+'", pozycja:"'+position+'", data_urodzenia:"'+dateBirth+'"}) MATCH (k:Kraj {nazwa:"'+nation+'"}) MATCH (c:Klub {nazwa:"'+nameClub+'"}) CREATE (z)-[r1:nalezy]->(k), (z)-[r2:kontrakt {od_kiedy:"'+odContract+'", do_kiedy:"'+doContract+'",wartosc:"'+walue+'"}]->(c) RETURN z, c, k, r1, r2;\n')
+        with driver.session() as session: session.execute_write(add_dataPlayer, name, position, dateBirth, nation, nameClub, odContract, doContract, walue)
 
     tropyLink = soup.find("div", {'class', 'data-header__badge-container'})
     tropyLink = tropyLink.find("a")
@@ -154,8 +162,9 @@ def getClubs(url, country, nameLig):
         a = td.find("a")
 
         nameClub = a.get("title")
-        #print(str(i+1)+" | "+nameClub+" | "+domain+a.get("href"))
-        plikCypher.write('CREATE (k:Klub {nazwa:"'+nameClub+'"}) MATCH (t:Kraj {nazwa:"'+country+'"}) CREATE (k)-[r:nalezy {nazwa:"'+nameLig+'"}]->(t) RETURN k, r, t;\n')
+
+        with driver.session() as session: session.execute_write(add_dataClub, nameClub, country, nameLig)
+
         getPlayers(domain+a.get("href"), nameClub)
 
 
@@ -176,9 +185,8 @@ for i, tr in enumerate(trs):
     country = img.get("title")
     nameLig = a.get("title")
 
-    #print(str(i+1)+" | "+nameLig+" | "+country+" | "+countClub+" | "+domain + a.get('href'))
-
     getClubs(domain + a.get('href'), country, nameLig)
     print("Pobrano ligi w raz z klubami: " + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
 
-plikCypher.close()
+
+driver.close()
