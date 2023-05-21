@@ -5,24 +5,30 @@ from neo4j import GraphDatabase
 uri = "bolt://localhost:7687"
 password = "P@$$w0rd"
 driver = GraphDatabase.driver(uri, auth=("neo4j", password))
-
+plikCypher = open("database.cypher", "w", encoding="utf-8")
 def add_dataCountry(tx, nameNation):
     tx.run("CREATE (k:Kraj {nazwa:$nameNation}) RETURN k", nameNation=nameNation)
+    plikCypher.write('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;\n')
 
 def add_dataPlayer(tx, name, position, dateBirth, nation, nameClub, odContract, doContract, walue):
-    tx.run("CREATE (z:Zawodnik {imie_i_nazwisko:$name, pozycja:$position, data_urodzenia:$dateBirth}) WITH z MATCH (k:Kraj {nazwa:$nation}) WITH z MATCH (c:Klub {nazwa:$nameClub}) CREATE (z)-[r1:nalezy]->(k), (z)-[r2:kontrakt {od_kiedy:$odContract, do_kiedy:$doContract, wartosc:$walue}]->(c) RETURN z, c, k, r1, r2", name=name, position=position, dateBirth=dateBirth, nation=nation, nameClub=nameClub, odContract=odContract, doContract=doContract, walue=walue)
+    tx.run("MATCH (k:Kraj {nazwa:$nation}), (c:Klub {nazwa:$nameClub}) CREATE (z:Zawodnik {imie_i_nazwisko:$name, pozycja:$position, data_urodzenia:$dateBirth}), (z)-[r1:pochodzi]->(k), (z)-[r2:kontrakt {od_kiedy:$odContract, do_kiedy:$doContract, wartosc:$walue}]->(c) RETURN z, c, k, r1, r2", name=name, position=position, dateBirth=dateBirth, nation=nation, nameClub=nameClub, odContract=odContract, doContract=doContract, walue=walue)
+    plikCypher.write('MATCH (k:Kraj {nazwa:"'+nation+'"}), (c:Klub {nazwa:"'+nameClub+'"}) CREATE (z:Zawodnik {imie_i_nazwisko:"'+name+'", pozycja:"'+position+'", data_urodzenia:"'+dateBirth+'"}), (z)-[r1:pochodzi]->(k), (z)-[r2:kontrakt {od_kiedy:"'+odContract+'", do_kiedy:"'+doContract+'",wartosc:"'+walue+'"}]->(c) RETURN z, c, k, r1, r2;\n')
 
 def add_dataCouch(tx, name, wiek, narodowosc, nameClub, od, do):
-    tx.run("CREATE (t:Trener {imie_i_nazwisko:$name, wiek:$wiek}) WITH t MATCH (k:Kraj {nazwa:$narodowosc}), (c:Klub {nazwa:$nameClub}) CREATE (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:$od, do_kiedy:$do}]->(c) RETURN t, k, c, r1, r2", name=name, wiek=wiek, narodowosc=narodowosc, nameClub=nameClub, od=od, do=do)
+    tx.run("MATCH (k:Kraj {nazwa:$narodowosc}), (c:Klub {nazwa:$nameClub}) CREATE (t:Trener {imie_i_nazwisko:$name, wiek:$wiek}), (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:$od, do_kiedy:$do}]->(c) RETURN t, k, c, r1, r2", name=name, wiek=wiek, narodowosc=narodowosc, nameClub=nameClub, od=od, do=do)
+    plikCypher.write('MATCH (k:Kraj {nazwa:"' + narodowosc + '"}), (c:Klub {nazwa:"' + nameClub + '"}) CREATE (t:Trener {imie_i_nazwisko:"' + name + '", wiek:"' + wiek + '"}), (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:"' + od + '", do_kiedy:"' + do.strip() + '"}]->(c) RETURN t, k, c, r1, r2;\n')
 
 def add_dataStadium(tx, nameStadium, setStadium, nameClub):
-    tx.run("CREATE (s:Stadion {nazwa:$nameStadium, miejsca:$setStadium}) WITH s MATCH (c:Klub {nazwa:$nameClub}) CREATE (s)-[r:nalezy]->(c) RETURN s, r, c", nameStadium=nameStadium, setStadium=setStadium, nameClub=nameClub)
+    tx.run("MATCH (c:Klub {nazwa:$nameClub}) CREATE (s:Stadion {nazwa:$nameStadium, miejsca:$setStadium}), (s)-[r:nalezy]->(c) RETURN s, r, c", nameStadium=nameStadium, setStadium=setStadium, nameClub=nameClub)
+    plikCypher.write('MATCH (c:Klub {nazwa:"' + nameClub + '"}) CREATE (s:Stadion {nazwa:"' + nameStadium + '", miejsca:"' + setStadium + '"}), (s)-[r:nalezy]->(c) RETURN s, r, c;\n')
 
 def add_dataClub(tx, nameClub, country, nameLig):
-    tx.run("CREATE (k:Klub {nazwa:$nameClub}) WITH k MATCH (t:Kraj {nazwa:$country}) CREATE (k)-[r:nalezy {nazwa:$nameLig}]->(t) RETURN k, r, t;", nameClub=nameClub, country=country, nameLig=nameLig)
+    tx.run("MATCH (t:Kraj {nazwa:$country}) CREATE (k:Klub {nazwa:$nameClub}), (k)-[r:nalezy {nazwa:$nameLig}]->(t) RETURN k, r, t;", nameClub=nameClub, country=country, nameLig=nameLig)
+    plikCypher.write('MATCH (t:Kraj {nazwa:"' + country + '"}) CREATE (k:Klub {nazwa:"' + nameClub + '"}), (k)-[r:nalezy {nazwa:"' + nameLig + '"}]->(t) RETURN k, r, t;\n')
 
 def add_dataTrophist(tx, clubOrNation, who, nameTrohy, sezon):
     tx.run("MATCH (k:"+clubOrNation+" {nazwa:$who}) MERGE (t:Trofeum {nazwa:$nameTrohy}) CREATE (k)-[r:wygrali {sezon:$sezon}]->(t) RETURN k, r, t", who=who, nameTrohy=nameTrohy, sezon=sezon)
+    plikCypher.write('MATCH (k:' + clubOrNation + ' {nazwa:"' + who + '"}) MERGE (t:Trofeum {nazwa:"' + nameTrohy + '"}) CREATE (k)-[r:wygrali {sezon:"' + sezon + '"}]->(t) RETURN k, r, t;\n')
 
 def getSoup(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -188,5 +194,5 @@ for i, tr in enumerate(trs):
     getClubs(domain + a.get('href'), country, nameLig)
     print("Pobrano ligi w raz z klubami: " + str(round(((i+1) / len(trs)) * 100, 2)) + "%")
 
-
+plikCypher.close()
 driver.close()
