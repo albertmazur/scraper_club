@@ -6,6 +6,8 @@ uri = "bolt://localhost:7687"
 password = "P@$$w0rd"
 driver = GraphDatabase.driver(uri, auth=("neo4j", password))
 plikCypher = open("database.cypher", "w", encoding="utf-8")
+
+domain = "https://www.transfermarkt.pl"
 def add_dataCountry(tx, nameNation):
     tx.run("CREATE (k:Kraj {nazwa:$nameNation}) RETURN k", nameNation=nameNation)
     plikCypher.write('CREATE (k:Kraj {nazwa:"' + nameNation + '"}) RETURN k;\n')
@@ -33,9 +35,6 @@ def add_dataTrophist(tx, clubOrNation, who, nameTrohy, sezon):
 def getSoup(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     return BeautifulSoup(response.text, 'html.parser')
-
-domain = "https://www.transfermarkt.pl"
-url = "https://www.transfermarkt.pl/wettbewerbe/europa"
 
 def getTrophist(url, who, clubOrNation):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -173,7 +172,7 @@ def getClubs(url, country, nameLig):
 
         getPlayers(domain+a.get("href"), nameClub)
 
-
+url = "https://www.transfermarkt.pl/wettbewerbe/europa"
 soup = getSoup(url)
 tableLig = soup.find('table', {'class': 'items'})
 trs = tableLig.find_all('tr', class_=['odd', 'even'])
