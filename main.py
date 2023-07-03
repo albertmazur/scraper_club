@@ -21,7 +21,7 @@ def add_dataCouch(tx, name, wiek, narodowosc, nameClub, od, do):
     plikCypher.write('MATCH (k:Kraj {nazwa:"' + narodowosc + '"}), (c:Klub {nazwa:"' + nameClub + '"}) CREATE (t:Trener {imie_i_nazwisko:"' + name + '", wiek:"' + wiek + '"}), (t)-[r1:pochodzi]->(k), (t)-[r2:kontrakt {od_kiedy:"' + od + '", do_kiedy:"' + do.strip() + '"}]->(c) RETURN t, k, c, r1, r2;\n')
 
 def add_dataStadium(tx, nameStadium, setStadium, nameClub):
-    tx.run("MATCH (c:Klub {nazwa:$nameClub}) CREATE (s:Stadion {nazwa:$nameStadium, miejsca:$setStadium}), (s)-[r:nalezy]->(c) RETURN s, r, c", nameStadium=nameStadium, setStadium=setStadium, nameClub=nameClub)
+    tx.run("MATCH (c:Klub {nazwa:$nameClub}) CREATE (s:Stadion {nazwa:$nameStadium, miejsca:$setStadium}), (c)-[r:nalezy]->(s) RETURN s, r, c", nameStadium=nameStadium, setStadium=setStadium, nameClub=nameClub)
     plikCypher.write('MATCH (c:Klub {nazwa:"' + nameClub + '"}) CREATE (s:Stadion {nazwa:"' + nameStadium + '", miejsca:"' + setStadium + '"}), (s)-[r:nalezy]->(c) RETURN s, r, c;\n')
 
 def add_dataClub(tx, nameClub, country, nameLig):
